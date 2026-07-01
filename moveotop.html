@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="keywords" content="MUVI0, streaming, movies, tv series, watch online, free streaming, live stream, cinema core">
+    <title>MUVI0 - Ultimate Streaming Core</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body { background-color: #0c0f17; color: #f3f4f6; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0c0f17; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased">
+    <header class="border-b border-gray-800 bg-[#0c0f17] p-4 md:p-6 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="h-3 w-3 bg-purple-500 rounded-full animate-pulse"></div>
+                <h1 class="text-2xl md:text-3xl font-black italic tracking-tighter text-white">MUVI<span class="text-purple-500">0</span></h1>
+                <span class="text-[10px] bg-purple-950/60 text-purple-300 border border-purple-800 px-2 py-0.5 rounded-full uppercase font-mono">Stream Engine v2</span>
+            </div>
+            <div class="w-full sm:w-80 md:w-96">
+                <input id="search-box" type="text" placeholder="Search movies or tv series..." class="w-full bg-[#111625] border border-gray-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition shadow-inner">
+            </div>
+        </div>
+    </header>
+    <main class="max-w-7xl mx-auto p-4 md:p-6 flex-1 w-full space-y-6">
+        <div class="flex gap-3">
+            <button id="btn-movie" onclick="changeType('movie')" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider transition cursor-pointer">🎬 Movies</button>
+            <button id="btn-tv" onclick="changeType('tv')" class="px-5 py-2 rounded-xl bg-[#111625] border border-gray-800 text-gray-400 hover:text-white hover:bg-[#182032] font-bold text-xs uppercase tracking-wider transition cursor-pointer">📺 TV Series</button>
+        </div>
+        <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
+            <div class="col-span-full text-center py-20 text-gray-500 text-sm animate-pulse">Connecting to server core...</div>
+        </div>
+    </main>
+    <script>
+        const API_KEY = "f245152025b0ef9db58ed62a3e92f28e";
+        let currentType = "movie";
+        async function fetchMedia(type, query = "") {
+            const endpoint = query 
+                ? `https://api.themoviedb.org/3/search/${type}?api_key=${API_KEY}&query=${encodeURIComponent(query)}`
+                : `https://api.themoviedb.org/3/discover/${type}?api_key=${API_KEY}&sort_by=popularity.desc`;
+            try {
+                const res = await fetch(endpoint);
+                const data = await res.json();
+                render(data.results || []);
+            } catch (err) {
+                document.getElementById('catalog-grid').innerHTML = `<div class="col-span-full text-center py-20 text-red-400 text-sm">Failed to sync database.</div>`;
+            }
+        }
+        function render(items) {
+            const grid = document.getElementById('catalog-grid');
+            if (items.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-20 text-gray-500 text-sm">No results found.</div>`;
+                return;
+            }
+            grid.innerHTML = items.map((m, i) => {
+                const title = m.title || m.name;
+                const poster = m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Cover';
+                const year = (m.release_date || m.first_air_date || 'N/A').split('-')[0];
+                return `
+                    <div class="bg-[#111625] border border-gray-800/80 rounded-2xl p-2 flex flex-col justify-between shadow-md hover:border-purple-500 transition group cursor-pointer" onclick="openPlayer(${i})">
+                        <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-900 shadow-inner">
+                            <img src="${poster}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy">
+                        </div>
+                        <div class="mt-2.5 px-1 py-1">
+                            <h3 class="text-xs font-bold text-gray-200 line-clamp-1 group-hover:text-purple-400 transition">${title}</h3>
+                            <p class="text-[10px] text-gray-500 mt-0.5 font-mono">${year}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            window.lastData = items;
+        }
+        function openPlayer(index) {
+            const m = window.lastData[index];
+            const title = (m.title || m.name).replace(/['"\\]/g, '');
+            const desc = m.overview ? m.overview.replace(/['"\\]/g, ' ') : "No synopsis available.";
+            const rating = m.vote_average ? m.vote_average.toFixed(1) : '0.0';
+            const win = window.open();
+            if (!win) {
+                alert("Please allow pop-ups to view stream links.");
+                return;
+            }
+            win.document.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <meta name="keywords" content="MUVI0 Hub, stream ${title}, watch ${title}, ${title} online, movie trailer, player hub">
+                    <title>MUVI0 Hub: ${title}</title>
+                    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
+                    <style>
+                        body { background-color: #060814; color: #f3f4f6; }
+                        ::-webkit-scrollbar { width: 6px; }
+                        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
+                    </style>
+                </head>
+                <body class="p-4 md:p-6 min-h-screen flex flex-col items-center font-sans">
+                    <div class="max-w-4xl w-full space-y-5">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-800 pb-4 gap-3">
+                            <div>
+                                <span class="text-[10px] uppercase tracking-widest text-purple-400 font-extrabold">⚡ MUVI0 Cinematic Core</span>
+                                <h1 class="text-xl md:text-2xl font-black text-white mt-0.5">${title}</h1>
+                                <div class="flex items-center gap-3 text-[11px] text-gray-400 font-mono mt-1">
+                                    <span class="text-yellow-400 font-bold">⭐ ${rating}/10</span>
+                                    <span id="meta-runtime">⌛ Loading duration...</span>
+                                </div>
+                            </div>
+                            <button onclick="window.close()" class="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-xs px-4 py-2 rounded-xl border border-gray-700 text-gray-400 font-bold cursor-pointer transition">✕ Close Tab</button>
+                        </div>
+                        <div class="w-full aspect-video bg-black rounded-2xl border border-gray-800 overflow-hidden shadow-2xl relative" id="player-container">
+                            <div id="trailer-frame-box" class="w-full h-full hidden"></div>
+                            <div id="no-trailer-box" class="absolute inset-0 flex items-center justify-center bg-gray-950 text-xs text-gray-500 hidden">No Official Trailer Available.</div>
+                        </div>
+                        <div class="bg-[#111625] border border-gray-800 p-4 rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div class="text-center md:text-left space-y-1">
+                                <h3 class="text-xs font-black text-purple-400 uppercase tracking-wider">Stream Station Ready</h3>
+                                <p class="text-[11px] text-gray-400">Ready to fetch encrypted links. Click play to launch video pipeline.</p>
+                            </div>
+                            <button onclick="activateMainStream()" class="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-xl text-xs uppercase tracking-widest transition transform hover:scale-[1.02] active:scale-95 cursor-pointer shadow-lg shadow-purple-950/50">
+                                ► Play Movie / Episode
+                            </button>
+                        </div>
+                        <div id="episode-selector-container" class="bg-[#111625] border border-gray-800 p-4 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-4 ${currentType === 'movie' ? 'hidden' : ''}">
+                            <div>
+                                <label class="block text-[10px] uppercase font-bold text-purple-400 tracking-wider mb-1">Season</label>
+                                <select id="season-select" class="w-full bg-[#0c0f17] border border-gray-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer font-bold">
+                                    <option>Loading seasons...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] uppercase font-bold text-purple-400 tracking-wider mb-1">Episode</label>
+                                <select id="episode-select" class="w-full bg-[#0c0f17] border border-gray-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer font-bold">
+                                    <option>Loading episodes...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2 bg-[#111625] p-4 rounded-2xl border border-gray-800/80 shadow-md">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">📝 Synopsis</h3>
+                                <p class="text-xs text-gray-400 leading-relaxed">${desc}</p>
+                            </div>
+                            <div class="bg-[#111625] p-4 rounded-2xl border border-gray-800/80 shadow-md">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">👥 Top Billed Cast</h3>
+                                <div id="cast-list" class="space-y-2 max-h-[150px] overflow-y-auto text-xs text-gray-300 pr-1">
+                                    <span class="text-gray-600 animate-pulse">Loading cast...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <script>
+                        const id = "${m.id}";
+                        const type = "${currentType}";
+                        const apiKey = "${API_KEY}";
+                        let seasonsMeta = [];
+                        async function initSeriesData() {
+                            const appendUrl = type === "movie" 
+                                ? "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + apiKey + "&append_to_response=videos,credits"
+                                : "https://api.themoviedb.org/3/tv/" + id + "?api_key=" + apiKey + "&append_to_response=videos,credits";
+                            try {
+                                const res = await fetch(appendUrl);
+                                const details = await res.json();
+                                const runtimeElement = document.getElementById('meta-runtime');
+                                if (type === "movie" && details.runtime) {
+                                    const hrs = Math.floor(details.runtime / 60);
+                                    const mins = details.runtime % 60;
+                                    runtimeElement.innerText = "⌛ " + hrs + "h " + mins + "m";
+                                } else if (type === "tv" && details.episode_run_time && details.episode_run_time.length > 0) {
+                                    runtimeElement.innerText = "⌛ " + details.episode_run_time[0] + "m per ep";
+                                } else {
+                                    runtimeElement.innerText = "";
+                                }
+                                const trailer = details.videos?.results?.find(v => v.type === "Trailer" && v.site === "YouTube");
+                                if (trailer) {
+                                    const tBox = document.getElementById('trailer-frame-box');
+                                    tBox.innerHTML = '<iframe src="https://www.youtube.com/embed/' + trailer.key + '?modestbranding=1" class="w-full h-full border-0" allowfullscreen><\/iframe>';
+                                    tBox.classList.remove('hidden');
+                                } else {
+                                    document.getElementById('no-trailer-box').classList.remove('hidden');
+                                }
+                                const castBox = document.getElementById('cast-list');
+                                const topCast = details.credits?.cast?.slice(0, 5) || [];
+                                if(topCast.length > 0) {
+                                    castBox.innerHTML = topCast.map(c => '<div class="border-b border-gray-800/40 pb-1.5 last:border-0"><strong>' + c.name + '<\/strong><br><span class="text-gray-500 text-[10px]">' + c.character + '<\/span><\/div>').join('');
+                                } else {
+                                    castBox.innerHTML = '<span class="text-gray-600">No cast information available.<\/span>';
+                                }
+                                if (type === "movie") return;
+                                seasonsMeta = details.seasons.filter(s => s.season_number > 0);
+                                const seasonSelect = document.getElementById('season-select');
+                                seasonSelect.innerHTML = "";
+                                seasonsMeta.forEach(s => {
+                                    const opt = document.createElement('option');
+                                    opt.value = s.season_number;
+                                    opt.innerText = "Season " + s.season_number;
+                                    seasonSelect.appendChild(opt);
+                                });
+                                seasonSelect.addEventListener('change', buildEpisodeDropdown);
+                                buildEpisodeDropdown();
+                            } catch (e) {
+                                console.error(e);
+                            }
+                        }
+                        function buildEpisodeDropdown() {
+                            const currentSeasonNum = parseInt(document.getElementById('season-select').value) || 1;
+                            const selectedSeason = seasonsMeta.find(s => s.season_number === currentSeasonNum);
+                            const epCount = selectedSeason ? selectedSeason.episode_count : 10;
+                            const epSelect = document.getElementById('episode-select');
+                            epSelect.innerHTML = "";
+                            for (let i = 1; i <= epCount; i++) {
+                                const opt = document.createElement('option');
+                                opt.value = i;
+                                opt.innerText = "Episode " + i;
+                                epSelect.appendChild(opt);
+                            }
+                        }
+                        function activateMainStream() {
+                            const season = document.getElementById('season-select')?.value || "1";
+                            const episode = document.getElementById('episode-select')?.value || "1";
+                            const playerContainer = document.getElementById('player-container');
+                            let streamUrl = type === "movie" 
+                                ? "https://vidsrc.pm/embed/movie/" + id + "?provider=1"
+                                : "https://vidsrc.pm/embed/tv/" + id + "/" + season + "/" + episode + "?provider=1";
+                            playerContainer.innerHTML = '<iframe src="' + streamUrl + '" class="w-full h-full border-0 bg-black" allowfullscreen><\/iframe>';
+                            window.scrollTo({top: 0, behavior: 'smooth'});
+                        }
+                        initSeriesData();
+                    <\/script>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        }
+        function changeType(type) {
+            currentType = type;
+            document.getElementById('btn-movie').className = type === 'movie' ? "px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider transition cursor-pointer" : "px-5 py-2 rounded-xl bg-[#111625] border border-gray-800 text-gray-400 hover:text-white hover:bg-[#182032] font-bold text-xs uppercase tracking-wider transition cursor-pointer";
+            document.getElementById('btn-tv').className = type === 'tv' ? "px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider transition cursor-pointer" : "px-5 py-2 rounded-xl bg-[#111625] border border-gray-800 text-gray-400 hover:text-white hover:bg-[#182032] font-bold text-xs uppercase tracking-wider transition cursor-pointer";
+            fetchMedia(type);
+        }
+        document.getElementById('search-box').addEventListener('input', (e) => {
+            const query = e.target.value;
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                if (query.trim().length > 0) {
+                    fetchMedia(currentType, query);
+                } else {
+                    fetchMedia(currentType);
+                }
+            }, 500);
+        });
+        document.getElementById('search-box').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                clearTimeout(window.searchTimeout);
+                fetchMedia(currentType, e.target.value);
+            }
+        });
+        fetchMedia('movie');
+    </script>
+</body>
+</html>
